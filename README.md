@@ -20,6 +20,7 @@ cd will
 ```
 
 Make sure Ganache is running
+
 Now you can migrate the contract
 
 ```
@@ -35,6 +36,7 @@ truffle test
 ```
 Some of the tests are time dependent, so you might have to adjust one variable depending on your machine speed
 If tests like 'checks if it's executable' or 'gets time remaining' are failing, you should increase the pingInterval. If 'executes the will' go wrong, you should decrease it.
+
 To adjust the pingInterval, just change the number value on the config_ping_interval.js file in the root directory.
 
 ## Author
