@@ -1,10 +1,11 @@
 const Will = artifacts.require("Will");
+const config = require("../config_ping_interval.js");
 
 let WillInstance;
 let blockNumber;
 let lastPing = 0;
 let addressZero = "0x0000000000000000000000000000000000000000";
-let pingInterval = 2;
+let pingInterval = config.pingInterval;
 
 contract("Will - owner", accounts => {
 	beforeEach(() => {
@@ -43,9 +44,29 @@ contract("Will - owner", accounts => {
 	async function checkBalance(balance) {
 		return WillInstance.getBalance.call()
 		.then(_balance => {
-			assert.equal(_balance, balance, "Balance should be: " + balance);
+			assert.equal(_balance.toNumber(), balance, "Balance should be: " + balance);
 		});
 	}
+
+	it("gets time remaining", () => {
+		return WillInstance.timeRemaining.call()
+		.then(time => {
+			assert(time <= pingInterval && time >= 0);
+			return WillInstance.timeRemaining();
+		}).then(() => {
+			return checkPing();
+		});
+	});
+
+	it("checks if it's executable", () => {
+		return WillInstance.isExecutable.call()
+		.then(bool => {
+			assert(!bool, "Will must not be executable yet");
+			return WillInstance.isExecutable();
+		}).then(() => {
+			return checkPing();
+		});
+	});
 
 	it("gets owner address", () => {
 		return WillInstance.getOwner.call()
@@ -75,26 +96,6 @@ contract("Will - owner", accounts => {
 			return checkPing();
 		});
 	});
-
-	it("gets time remaining", () => {
-		return WillInstance.timeRemaining.call()
-		.then(time => {
-			assert(time <= pingInterval && time >= 0);
-			return WillInstance.timeRemaining();
-		}).then(() => {
-			return checkPing();
-		});
-	});
-
-	it("checks if it's executable", () => {
-		return WillInstance.isExecutable.call()
-		.then(bool => {
-			assert(!bool, "Will must not be executable yet");
-			return WillInstance.isExecutable();
-		}).then(() => {
-			return checkPing();
-		});
-	});	
 
 	it("pings", () => {
 		return WillInstance.ping()

@@ -45,8 +45,10 @@ contract Will {
 		return pingInterval;
 	}
 
-	function timeRemaining() external ownerOrHeir returns(uint256){
-		return executableWhen - now;
+	function timeRemaining() external ownerOrHeir returns(uint256 remaining){
+		uint256 timeNow = now;
+		if (timeNow < executableWhen)
+			remaining = executableWhen - timeNow;
 	}
 
 	function isExecutable() external ownerOrHeir returns(bool){

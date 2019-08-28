@@ -1,10 +1,11 @@
 const Will = artifacts.require("Will");
+const config = require("../config_ping_interval.js");
 
 let WillInstance;
 let blockNumber;
 let lastPing = 0;
 let addressZero = "0x0000000000000000000000000000000000000000";
-let pingInterval = 2;
+let pingInterval = config.pingInterval;
 
 contract("Will - intruder", accounts => {
 	beforeEach(() => {

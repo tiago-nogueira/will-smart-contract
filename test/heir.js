@@ -1,10 +1,11 @@
 const Will = artifacts.require("Will");
+const config = require("../config_ping_interval.js");
 
 let WillInstance;
 let blockNumber;
 let lastPing = 0;
 let addressZero = "0x0000000000000000000000000000000000000000";
-let pingInterval = 2;
+let pingInterval = config.pingInterval;
 
 contract("Will - heir", accounts => {
 	beforeEach(() => {
@@ -75,6 +76,16 @@ contract("Will - heir", accounts => {
 		});
 	});		
 
+	it("gets time remaining", () => {
+		return WillInstance.timeRemaining.call( {from: accounts[1] })
+		.then(time => {
+			assert(time <= pingInterval && time >= 0);
+			return WillInstance.timeRemaining( {from: accounts[1] } );
+		}).then(() => {
+			return checkNoPing();
+		});
+	});
+
 	it("gets owner address", () => {
 		return WillInstance.getOwner.call({ from: accounts[1] })
 		.then(owner => {
@@ -98,17 +109,6 @@ contract("Will - heir", accounts => {
 		return WillInstance.getPingInterval({ from: accounts[1] })
 		.then(assert.fail).catch(error => {
 			accessDenied(error);		
-			return checkNoPing();
-		});
-	});
-
-
-	it("gets time remaining", () => {
-		return WillInstance.timeRemaining.call( {from: accounts[1] })
-		.then(time => {
-			assert(time <= pingInterval && time >= 0);
-			return WillInstance.timeRemaining( {from: accounts[1] } );
-		}).then(() => {
 			return checkNoPing();
 		});
 	});
