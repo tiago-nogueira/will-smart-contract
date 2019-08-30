@@ -43,7 +43,9 @@ contract Will {
 
 	function ping() public {
 		require(msg.sender == owner, "Access denied");
+		executableWhen = pingInterval.add(now);
 		executableWhen = now + pingInterval;
+		require(executableWhen > now, "Avoiding overflow");
 		emit Ping(executableWhen);
 	}
 
