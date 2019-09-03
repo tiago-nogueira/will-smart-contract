@@ -10,9 +10,10 @@ module.exports = function(deployer) {
 const Will = artifacts.require("Will");
 const config = require("../config_ping_interval.js");
 
-const ERC1820 = artifacts.require("ERC1820Registry")
-const Token777 = artifacts.require("Token777")
-const Token777_2 = artifacts.require("Token777_2")
+const ERC1820 = artifacts.require("ERC1820Registry");
+const Token777 = artifacts.require("Token777");
+const Token777_2 = artifacts.require("Token777_2");
+const Token20 = artifacts.require("Token20");
 
 module.exports = function(deployer) {
   deployer.deploy(Will, config.pingInterval)
@@ -38,5 +39,9 @@ module.exports = function(deployer) {
       10000000000,  // 10 zeros
       []
     );
+  }).then(() => {
+    return deployer.deploy(
+      Token20,
+      1000000000000000) // 15 zeros
   });
 };

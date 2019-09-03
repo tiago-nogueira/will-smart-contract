@@ -6,8 +6,9 @@ contract Will {
 	uint256 private executableWhen; // in seconds
 	uint256 private pingInterval;  // in seconds
 
-	mapping(address => TokenERC777) private erc777;
-	address[] private erc777Addrs;
+	mapping(address => Token) private token;
+	address[] private tokensAddrs;
+	string constant private erc20Sig = "transferFrom(address,address,uint256)";
     string constant private erc777Sig = "operatorSend(address,address,uint256,bytes,bytes)";
 
 	constructor(uint256 _pingInterval) public {
@@ -19,11 +20,13 @@ contract Will {
 	event Ping(uint256 indexed expiresWhen);
 	event HeirSet(address indexed heir);
 	event PingIntervalSet(uint256 indexed pingInterval);
-	event TokenERC777Set(address indexed tokenContract, uint256 indexed amount);
-	event TokenERC777Transfered(address indexed tokenContract, uint256 indexed amount);	
+	event TokenSet(bool indexed _type, address indexed tokenAddr, uint256 indexed amount);
+	event TokenDeleted(address indexed tokenAddr);
+	event TokenTransfered(bool indexed _type, address indexed tokenAddr, uint256 indexed amount);	
 	event WillExecuted(address indexed newOwner);
 
-	struct TokenERC777 {
+	struct Token {
+		bool kind; // false for ERC-20 / true for ERC-777
 		uint256 amount;
 		address tokenOwner;
 	}
@@ -43,7 +46,6 @@ contract Will {
 
 	function ping() public {
 		require(msg.sender == owner, "Access denied");
-		executableWhen = pingInterval.add(now);
 		executableWhen = now + pingInterval;
 		require(executableWhen > now, "Avoiding overflow");
 		emit Ping(executableWhen);
@@ -104,58 +106,81 @@ contract Will {
 		msg.sender.transfer(balance);
 	}
 
-	// ERC777 functions
-	function setTokenERC777(address tokenContract, uint256 amount) external onlyOwner{
-		if (erc777[tokenContract].tokenOwner == address(0)) {
-			newToken777(tokenContract, amount);
+	// Token functions
+	function setToken(bool kind, address tokenAddr, uint256 amount) external onlyOwner{
+		if (token[tokenAddr].tokenOwner == address(0)) {
+			newToken(kind, tokenAddr, amount);
 		} else {
-			require(erc777[tokenContract].tokenOwner == owner, "Can't change token cataloged by previous owner");
-			erc777[tokenContract].amount = amount;
+			require(token[tokenAddr].tokenOwner == owner, "Can't change token cataloged by previous owner");
+			token[tokenAddr].amount = amount;
 		}
-		emit TokenERC777Set(tokenContract, amount);
+		emit TokenSet(kind, tokenAddr, amount);
 	}
 
-	function getAmountERC777(address tokenContract) external onlyOwner returns(uint256){
-		return erc777[tokenContract].amount;
+	function getTokenType(address tokenAddr) external onlyOwner returns(bool){ // falta testar
+		return token[tokenAddr].kind;
+	}	
+
+	function getTokenAmount(address tokenAddr) external onlyOwner returns(uint256){
+		return token[tokenAddr].amount;
 	}
 
-	function getOwnerERC777(address tokenContract) external onlyOwner returns(address){
-		return erc777[tokenContract].tokenOwner;
+	function getTokenOwner(address tokenAddr) external onlyOwner returns(address){
+		return token[tokenAddr].tokenOwner;
 	}
 
-	function getERC777Addresses() external onlyOwner returns(address[] memory) {
-		return erc777Addrs;
+	function getTokensAddresses() external onlyOwner returns(address[] memory) {
+		return tokensAddrs;
 	}
 
-	function transferTokenERC777(address tokenContract) external onlyOwner{
-		address from = erc777[tokenContract].tokenOwner;
-		uint256 amount = erc777[tokenContract].amount;
-		deleteToken777(tokenContract);
-		(bool result, bytes memory b) = tokenContract.call(abi.encodeWithSignature(
-			erc777Sig,
-			from,
-			owner,
-			amount,
-			"",
-			""
-		));
+	function deleteToken(address tokenAddr) external onlyOwner{
+		deleting(tokenAddr);
+		emit TokenDeleted(tokenAddr);
+	}
+
+	function transferToken(address tokenAddr) external onlyOwner{
+		bool kind = token[tokenAddr].kind;
+		address from = token[tokenAddr].tokenOwner;
+		uint256 amount = token[tokenAddr].amount;
+		deleting(tokenAddr);
+		bool result;
+		bytes memory b;
+		if(kind) { // ERC-777
+			(result, b) = tokenAddr.call(abi.encodeWithSignature(
+				erc777Sig,
+				from,
+				owner,
+				amount,
+				"",
+				""
+			));
+		} else { // ERC-20
+			(result, b) = tokenAddr.call(abi.encodeWithSignature(
+				erc20Sig,
+				from,
+				owner,
+				amount
+			));
+		}
 		require(result, "Unable to transfer");
-		emit TokenERC777Transfered(tokenContract, amount);
+		emit TokenTransfered(kind, tokenAddr, amount);
 	}
 
 	// Helper functions
-	function newToken777(address tokenContract, uint256 amount) private {
-		erc777[tokenContract].amount = amount;
-		erc777[tokenContract].tokenOwner = owner;
-		erc777Addrs.push(tokenContract);
+	function newToken(bool kind, address tokenAddr, uint256 amount) private {
+/*		token[tokenAddr].kind = kind;		
+		token[tokenAddr].amount = amount;
+		token[tokenAddr].tokenOwner = owner;
+*/		token[tokenAddr] = Token(kind, amount, owner);
+		tokensAddrs.push(tokenAddr);
 	}
 
-	function deleteToken777(address tokenContract) private {
-		delete erc777[tokenContract];
-		for(uint256 i = 0; i < erc777Addrs.length; i++) {
-			if (erc777Addrs[i] == tokenContract) {
-				erc777Addrs[i] = erc777Addrs[erc777Addrs.length - 1];
-				erc777Addrs.length--;
+	function deleting(address tokenAddr) private {
+		delete token[tokenAddr];
+		for(uint256 i = 0; i < tokensAddrs.length; i++) {
+			if(tokensAddrs[i] == tokenAddr) {
+				tokensAddrs[i] = tokensAddrs[tokensAddrs.length - 1];
+				tokensAddrs.length--;
 				return;
 			}
 		}
