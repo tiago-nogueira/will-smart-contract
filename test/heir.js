@@ -2,8 +2,6 @@ const Will = artifacts.require("Will");
 const config = require("../config_ping_interval.js");
 
 let WillInstance;
-let blockNumber;
-let lastPing = 0;
 let addressZero = "0x0000000000000000000000000000000000000000";
 let pingInterval = config.pingInterval;
 
@@ -11,34 +9,13 @@ contract("Will - heir", accounts => {
 	beforeEach(() => {
 		return Will.deployed().then(instance => {
 			WillInstance = instance;
-			return web3.eth.getBlockNumber();
-		}).then(block => {
-			blockNumber = block;
 		});
 	});
 
-	async function getPingEvent() {
-		return WillInstance.getPastEvents("Ping", { from: blockNumber + 1, to: 'latest' });
+	async function checkNoPing(receipt) {
+		let length = receipt.logs.filter(i => i.event == "Ping").length;
+		assert.equal(length, 0, "No 'ping' event must have been emited");
 	}
-
-	async function checkNoPing() {
-		let event = await getPingEvent(WillInstance, blockNumber);
-		assert.equal(event.length, 0, "No 'ping' event must have been emited");
-	}
-
-	async function checkHeir(heir) {
-		return WillInstance.getHeir.call()
-		.then(_heir => {
-			assert.equal(_heir, heir, "Heir must be " + heir);
-		});	
-	}
-
-	async function checkBalance(balance) {
-		return WillInstance.getBalance.call()
-		.then(_balance => {
-			assert.equal(_balance, balance, "Balance should be: " + balance);
-		});
-	}	
 
 	function accessDenied(error) {
 		return assert(error.message.indexOf("Access denied") >= 0);	
@@ -62,7 +39,6 @@ contract("Will - heir", accounts => {
 			return WillInstance.getOwner.call();
 		}).then(owner => {
 			assert.equal(owner, accounts[0])
-			return checkNoPing();
 		});
 	});
 
@@ -71,8 +47,8 @@ contract("Will - heir", accounts => {
 		.then(bool => {
 			assert(!bool, "Will must not be executable yet");
 			return WillInstance.isExecutable({ from: accounts[1] });
-		}).then(() => {
-			return checkNoPing();
+		}).then(receipt => {
+			return checkNoPing(receipt);
 		});
 	});		
 
@@ -81,8 +57,8 @@ contract("Will - heir", accounts => {
 		.then(time => {
 			assert(time <= pingInterval && time >= 0);
 			return WillInstance.timeRemaining( {from: accounts[1] } );
-		}).then(() => {
-			return checkNoPing();
+		}).then(receipt => {
+			return checkNoPing(receipt);
 		});
 	});
 
@@ -91,17 +67,19 @@ contract("Will - heir", accounts => {
 		.then(owner => {
 			assert.equal(owner, accounts[0], "Owner must be 'account 0'");
 			return WillInstance.getOwner({ from: accounts[1] });
-		}).then(() => {
-			return checkNoPing();
+		}).then(receipt => {
+			return checkNoPing(receipt);
 		});
 	});
 
 	it("gets heir address", () => {
-		return checkHeir(accounts[1])
-		.then(() => {
-			return WillInstance.getHeir({ from: accounts[1] });
+		return WillInstance.getHeir.call()
+		.then(heir => {
+			assert.equal(heir, accounts[1], "Heir must be " + accounts[1]);
 		}).then(() => {
-			return checkNoPing();
+			return WillInstance.getHeir({ from: accounts[1] });
+		}).then(receipt => {
+			return checkNoPing(receipt);
 		});
 	});
 
@@ -109,7 +87,6 @@ contract("Will - heir", accounts => {
 		return WillInstance.getPingInterval({ from: accounts[1] })
 		.then(assert.fail).catch(error => {
 			accessDenied(error);		
-			return checkNoPing();
 		});
 	});
 
@@ -117,7 +94,6 @@ contract("Will - heir", accounts => {
 		return WillInstance.ping({ from: accounts[1] })
 		.then(assert.fail).catch(error => {
 			assert(error.message.indexOf("Access denied" >= 0));
-			return checkNoPing();
 		});
 	});
 
@@ -125,9 +101,6 @@ contract("Will - heir", accounts => {
 		return WillInstance.setHeir(accounts[2], { from: accounts[1] })
 		.then(assert.fail).catch(error => {
 			accessDenied(error);
-			return checkNoPing();
-		}).then(() => {
-			return checkHeir(accounts[1]);
 		});
 	});
 
@@ -144,35 +117,28 @@ contract("Will - heir", accounts => {
 	it("tries to deposit ether", () => {
 		return WillInstance.deposit({ value: 1, from: accounts[1] })
 		.then(assert.fail).catch(error => {
-			accessDenied(error);
-			return checkNoPing();
+			return accessDenied(error);
 		});
 	});
 
 	it("tries to get the balance", () => {
 		return WillInstance.getBalance({ from: accounts[1] })
 		.then(assert.fail).catch(error => {
-			accessDenied(error);
-			return checkNoPing();
+			return accessDenied(error);
 		});
 	});
 
 	it("tries to withdraw", () => {
 		return WillInstance.withdraw(1, { from: accounts[1] })
 		.then(assert.fail).catch(error => {
-			accessDenied(error);
-			return checkBalance(100)
-		}).then(() => {
-			return checkNoPing();
+			return accessDenied(error);
 		});
 	});
 
 	it("tries to withdraw the entire balance", () => {
 		return WillInstance.withdrawAll({ from: accounts[1] })
 		.then(assert.fail).catch(error => {
-			return checkBalance(100);
-		}).then(() => {
-			return checkNoPing();
+			return accessDenied(error);
 		});
 	});
 
