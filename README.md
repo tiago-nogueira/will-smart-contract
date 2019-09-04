@@ -2,26 +2,29 @@
 
 # Project Title
 
-An smart contract for the Ethereum platform that functions as a will, transfering funds from the contract owner to an specified address when certain conditions are met.
+A smart contract that functions as a will, transfering ether and tokens (ERC-20 and ERC-777) from the contract owner to an specified address when the owner goes inactive.
+
 
 ## Dependencies
 
 npm
+
 Truffle
+
 Ganache
 
 ## Installing
 
-Clone the repository and cd into the 'will' directory
+Clone the repository and cd into the 'will' directory:
 
 ```
 git clone https://github.com/tiago-nogueira/will-smart-contract
 cd will
 ```
 
-Make sure Ganache is running
+Run Ganache. Make sure the host and port number on Ganache and those on the "truffle-config.js" file match.
 
-Now you can migrate the contract
+Now you can migrate the contract:
 
 ```
 truffle migrate --reset
@@ -29,7 +32,7 @@ truffle migrate --reset
 
 ## Running the tests
 
-Run the tests with truffle
+Run the tests with truffle:
 
 ```
 truffle test
@@ -45,4 +48,4 @@ Tiago Nogueira (https://github.com/tiago-nogueira)
 
 ## Acknowledgments
 
-* Thanks PurpleBooth for the README template (https://gist.github.com/PurpleBooth/109311bb0361f32d87a2#file-readme-template-md)
+Thanks PurpleBooth for the README template (https://gist.github.com/PurpleBooth/109311bb0361f32d87a2#file-readme-template-md)
