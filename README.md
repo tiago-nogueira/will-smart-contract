@@ -1,7 +1,5 @@
 # Will Smart Contract
 
-# Project Title
-
 A smart contract that functions as a will, transfering ether and tokens (ERC-20 and ERC-777) from the contract owner to an specified address when the owner goes inactive.
 
 
