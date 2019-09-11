@@ -35,34 +35,33 @@ contract("Tokens", accounts => {
 		});		
 	}
 
+	function checkReceipt(receipt, num, event, ...args) {
+		assert.equal(receipt.logs.length, num, num + " event must be emited");		
+		assert.equal(receipt.logs[0].args.__length__, args.length, `Event must have ${args.length} arguments`);
+		assert.equal(receipt.logs[0].event, event);
+		for(let i = 0; i < args.length; i++) {
+			assert.equal(receipt.logs[0].args[i], args[i] , `Argument ${i} must be: '${args[i]}'`);
+		}		
+	}	
+
 	it("first token owner approves will contract as operator", () => {
 		return Token777Instance.authorizeOperator(WillInstance.address)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 1, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "AuthorizedOperator", "Correct event");
-			assert.equal(receipt.logs[0].args.operator, WillInstance.address, "Correct operator");
-			assert.equal(receipt.logs[0].args.tokenHolder, accounts[0], "Correct token holder");
+			return checkReceipt(receipt, 1, "AuthorizedOperator", WillInstance.address, accounts[0]);
 		});
 	});
 
 	it("second token owner approves will contract as operator", () => {
 		return Token20Instance.approve(WillInstance.address, 1000000)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 1, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "Approval", "Correct event");
-			assert.equal(receipt.logs[0].args._owner, accounts[0], "Correct owner");
-			assert.equal(receipt.logs[0].args._spender, WillInstance.address, "Correct spender");
-			assert.equal(receipt.logs[0].args._value, 1000000, "Correct amount");
+			return checkReceipt(receipt, 1, "Approval", accounts[0], WillInstance.address, 1000000);
 		});
 	});
 
 	it("third token owner approves will contract as operator", () => {
 		return Token777_2Instance.authorizeOperator(WillInstance.address)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 1, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "AuthorizedOperator", "Correct event");
-			assert.equal(receipt.logs[0].args.operator, WillInstance.address, "Correct operator");
-			assert.equal(receipt.logs[0].args.tokenHolder, accounts[0], "Correct token holder");
+			return checkReceipt(receipt, 1, "AuthorizedOperator", WillInstance.address, accounts[0]);
 		});
 	});
 
@@ -73,10 +72,7 @@ contract("Tokens", accounts => {
 	it("catalogs the first token (ERC777)", () => {
 		return WillInstance.setToken(true, Token777Instance.address, 10000000000)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenSet", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token777Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 10000000000, "Correct amount");
+			checkReceipt(receipt, 2, "TokenSet", true, Token777Instance.address, 10000000000);
 			return checkTokenAddresses(Token777Instance.address);
 		});
 	});
@@ -84,10 +80,7 @@ contract("Tokens", accounts => {
 	it("catalogs the second token (ERC20)", () => {
 		return WillInstance.setToken(false, Token20Instance.address, 1000000)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenSet", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token20Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 1000000, "Correct amount");
+			checkReceipt(receipt, 2, "TokenSet", false, Token20Instance.address, 1000000);
 			return checkTokenAddresses(Token777Instance.address, Token20Instance.address);
 		});
 	});	
@@ -95,10 +88,7 @@ contract("Tokens", accounts => {
 	it("catalogs the third token (ERC777)", () => {
 		return WillInstance.setToken(true, Token777_2Instance.address, 10000000000000)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenSet", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token777_2Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 10000000000000, "Correct amount");
+			checkReceipt(receipt, 2, "TokenSet", true, Token777_2Instance.address, 10000000000000);
 			return checkTokenAddresses(
 				Token777Instance.address, Token20Instance.address, Token777_2Instance.address);
 		});
@@ -114,10 +104,7 @@ contract("Tokens", accounts => {
 	it("resets first token", () => {
 		return WillInstance.setToken(true, Token777Instance.address, 10000000000000)
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenSet", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token777Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 10000000000000, "Correct amount");
+			checkReceipt(receipt, 2, "TokenSet", true, Token777Instance.address, 10000000000000);
 			return checkTokenAddresses(
 				Token777Instance.address, Token20Instance.address, Token777_2Instance.address);
 		});
@@ -153,11 +140,7 @@ contract("Tokens", accounts => {
 		owner = accounts[1];		
 		return WillInstance.transferToken(Token20Instance.address, { from: accounts[1] })
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenTransfered", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token20Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 1000000, "Correct amount");
-
+			checkReceipt(receipt, 2, "TokenTransfered", false, Token20Instance.address, 1000000);
 			// Checking token balances
 			return Token20Instance.balanceOf(accounts[0]);
 		}).then(balance => {
@@ -172,11 +155,7 @@ contract("Tokens", accounts => {
 	it("transfers another token to the new owner", () => {
 		return WillInstance.transferToken(Token777Instance.address, { from: accounts[1] })
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenTransfered", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token777Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 10000000000000, "Correct amount");
-
+			checkReceipt(receipt, 2, "TokenTransfered", true, Token777Instance.address, 10000000000000);
 			// Checking token balances
 			return Token777Instance.balanceOf(accounts[0]);
 		}).then(balance => {
@@ -212,9 +191,7 @@ contract("Tokens", accounts => {
 	it("deletes a token", () => {
 		return WillInstance.deleteToken(Token777_2Instance.address, { from: accounts[1] })
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenDeleted", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token777_2Instance.address, "Correct token contract");
+			checkReceipt(receipt, 2, "TokenDeleted", Token777_2Instance.address);
 			return checkTokenAddresses();			
 		});
 	});
@@ -222,10 +199,7 @@ contract("Tokens", accounts => {
 	it("catalogs the ERC20 again", () => {
 		return WillInstance.setToken(false, Token20Instance.address, 1000000, { from: accounts[1] })
 		.then(receipt => {
-			assert.equal(receipt.logs.length, 2, "Correct number of logs");
-			assert.equal(receipt.logs[0].event, "TokenSet", "Correct event");
-			assert.equal(receipt.logs[0].args.tokenAddr, Token20Instance.address, "Correct token contract");
-			assert.equal(receipt.logs[0].args.amount, 1000000, "Correct amount");
+			checkReceipt(receipt, 2, "TokenSet", false, Token20Instance.address, 1000000);
 			return checkTokenAddresses(Token20Instance.address);
 		});
 	});	

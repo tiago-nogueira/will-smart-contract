@@ -168,10 +168,7 @@ contract Will {
 
 	// Helper functions
 	function newToken(bool kind, address tokenAddr, uint256 amount) private {
-/*		token[tokenAddr].kind = kind;		
-		token[tokenAddr].amount = amount;
-		token[tokenAddr].tokenOwner = owner;
-*/		token[tokenAddr] = Token(kind, amount, owner);
+		token[tokenAddr] = Token(kind, amount, owner);
 		tokensAddrs.push(tokenAddr);
 	}
 
